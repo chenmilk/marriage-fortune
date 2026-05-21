@@ -62,7 +62,7 @@
             border: 1px solid #800000;
             border-radius: 10px;
             padding: 15px;
-            display: none;
+            display: block; /* 確保框框固定出現 */
         }
         .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
         .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
@@ -104,7 +104,7 @@
 
     <div id="analysisBox" class="analysis-box">
         <h3>分析結果：</h3>
-        <div id="analysisList"></div>
+        <div id="analysisList" style="color: #888;">請輸入雙方姓名後點擊「開始分析」</div>
     </div>
 
     <script>
@@ -260,14 +260,15 @@
                 // analysisResults.push("1. (其他分析結果)"); 
             }
 
-            // 顯示結果
-            const aBox = document.getElementById('analysisBox');
+           // 渲染分析結果清單
             const aList = document.getElementById('analysisList');
+            
             if (analysisResults.length > 0) {
+                // 如果有符合「坐入」或其他規則，顯示結果
                 aList.innerHTML = analysisResults.map(res => `<div class="analysis-item">${res}</div>`).join('');
-                aBox.style.display = "block";
             } else {
-                aBox.style.display = "none";
+                // 如果完全沒有符合，顯示特定的文字，讓「分析結果：」下方不留白
+                aList.innerHTML = `<div class="analysis-item" style="color: #888;">(此組合尚無特殊坐入關係)</div>`;
             }
         }
     </script>
