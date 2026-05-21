@@ -5,53 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>姓名婚姻分析 - 甄好運姓名學專用</title>
     <style>
+        /* 強制不隨手機系統縮放字體，防止跑版 */
+        html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; text-align: center; color: #333; }
         .input-box { background: white; border: 1px solid #ddd; border-radius: 15px; padding: 20px; max-width: 450px; margin: 0 auto 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .name-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 10px; }
         .name-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #800000; }
         input { width: 35%; padding: 12px; margin: 5px; text-align: center; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; }
         
-        /* 修改按鈕文字後的樣式 */
         button { width: 85%; padding: 14px; background-color: #800000; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         button:disabled { background-color: #bbb; cursor: not-allowed; }
         
-        /* 強制手機並排的核心 CSS */
         .result-container { 
             display: flex; 
-            flex-wrap: nowrap; /* 禁止換行 */
+            flex-wrap: nowrap; 
             justify-content: center; 
             gap: 10px; 
             margin-top: 20px;
             width: 100%;
-            overflow-x: auto; /* 如果手機真的很窄，允許橫向滑動而不破圖 */
         }
         
         .result-frame { 
             border: 2px solid maroon; 
             border-radius: 15px; 
             padding: 10px; 
-            width: 48%; /* 讓兩個框框各佔約一半 */
-            min-width: 170px; /* 設定最小寬度，防止字擠在一起 */
+            width: 48%; 
+            min-width: 170px; 
             background-color: #FFFBFA; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
             display: none; 
             box-sizing: border-box;
+            vertical-align: top;
         }
         
         .result-title { font-size: 16px; font-weight: bold; color: #800000; margin-bottom: 10px; border-bottom: 1px solid #800000; padding-bottom: 5px; }
-        table { margin: 0 auto; border-collapse: collapse; width: 100%; }
+        table { margin: 0 auto; border-collapse: collapse; width: 100%; table-layout: fixed; }
         
         .char-row { height: 50px; }
         .arrow-row { height: 40px; }
         
-        /* 縮小手機版的文字大小以符合並排需求 */
         .stroke-text { font-size: 12px; color: #aaa; width: 25px; }
-        .char-text { font-size: 22px; font-weight: bold; width: 45px; color: black; }
+        .char-text { font-size: 22px; font-weight: bold; width: 45px; color: black; white-space: nowrap; }
         .num-text { font-size: 18px; color: #483D8B; width: 35px; }
         .wx-text { font-size: 16px; color: #483D8B; width: 35px; }
         .ge-label { font-size: 14px; color: #483D8B; font-weight: bold; width: 45px; text-align: left; }
         
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
+        
+        /* 分析結果顯示區 */
+        .analysis-box {
+            max-width: 450px;
+            margin: 20px auto;
+            text-align: left;
+            background: #fff;
+            border: 1px solid #800000;
+            border-radius: 10px;
+            padding: 15px;
+            display: none;
+        }
+        .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
+        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
+
         #status { font-size: 13px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
@@ -80,7 +95,6 @@
             <table id="mResultTable"></table>
             <div id="mTotalBox" class="total-box"></div>
         </div>
-
         <div id="wResultFrame" class="result-frame">
             <div class="result-title">女方格局</div>
             <table id="wResultTable"></table>
@@ -88,28 +102,26 @@
         </div>
     </div>
 
+    <div id="analysisBox" class="analysis-box">
+        <h3>分析結果：</h3>
+        <div id="analysisList"></div>
+    </div>
+
     <script>
         let dictionary = {};
         const btn = document.getElementById('btnRun');
         const status = document.getElementById('status');
 
-        // 核心邏輯：優先修正筆劃表
         function getStrokes(char) {
             const customStrokes = {
-                '互': 4, '片': 4, '氏': 4, '及': 4, '之': 4, '王': 4,
-                '瓦': 5, '台': 5, '巡': 6, '卉': 6,
-                '廷': 7, '初': 7, '秀': 7, '成': 7,
-                '亞': 8, '武': 8, '昆': 8, '沛': 8, '牧': 8, '弢': 8, '去': 8, '幺': 8,
-                '政': 9, '盈': 9, '建': 9, '妍': 9, '致': 9, '修': 9,
-                '哲': 10, '卿': 10, '娜': 10, '育': 10,
+                '互': 4, '片': 4, '氏': 4, '及': 4, '之': 4, '王': 4, '瓦': 5, '台': 5, '巡': 6, '卉': 6,
+                '廷': 7, '初': 7, '秀': 7, '成': 7, '亞': 8, '武': 8, '昆': 8, '沛': 8, '牧': 8, '弢': 8, '去': 8, '幺': 8,
+                '政': 9, '盈': 9, '建': 9, '妍': 9, '致': 9, '修': 9, '哲': 10, '卿': 10, '娜': 10, '育': 10,
                 '屏': 11, '胡': 11, '強': 11, '迎': 11, '閏': 11, '一': 11, '弓': 11, '丿': 11,
                 '傑': 12, '黃': 12, '盛': 12, '勝': 12, '為': 12, '能': 12, '胸': 12, '涵': 12,
-                '溫': 13, '新': 13, '敬': 13, '雋': 13, '淵': 13,
-                '郎': 14, '鳳': 14, '萍': 14, '慈': 14, '嘉': 14,
-                '萬': 15, '興': 15, '霈': 15, '數': 15, '寬': 15, '豎': 15, '履': 15,
-                '學': 16, '樺': 16, '璇': 16, '閣': 16, '潔': 16, '頤': 16,
-                '鴻': 17, '臨': 17, '燦': 17, '戴': 18, '豐': 18, '珞': 18, '魏': 18,
-                '蕭': 19, '覺': 19, '贊': 19, '羅': 20, '寶': 20, '藏': 20, '譽': 20, '馨': 20,
+                '溫': 13, '新': 13, '敬': 13, '雋': 13, '淵': 13, '郎': 14, '鳳': 14, '萍': 14, '慈': 14, '嘉': 14,
+                '萬': 15, '興': 15, '霈': 15, '數': 15, '寬': 15, '豎': 15, '履': 15, '學': 16, '樺': 16, '璇': 16, '閣': 16, '潔': 16, '頤': 16,
+                '鴻': 17, '臨': 17, '燦': 17, '戴': 18, '豐': 18, '珞': 18, '魏': 18, '蕭': 19, '覺': 19, '贊': 19, '羅': 20, '寶': 20, '藏': 20, '譽': 20, '馨': 20,
                 '屬': 21, '龔': 22, '響': 22, '霽': 22, '蘭': 23, '麟': 23, '艷': 24
             };
             return customStrokes[char] || dictionary[char] || 0;
@@ -130,6 +142,14 @@
             }
         }
         loadDict();
+
+        // 遞迴將數字相加直到變成個位數 (如 29 -> 11 -> 2)
+        function reduceToSingleDigit(n) {
+            while (n >= 10) {
+                n = String(n).split('').reduce((sum, d) => sum + parseInt(d), 0);
+            }
+            return n;
+        }
 
         function getWX(n) {
             const map = {1:"木", 2:"木", 3:"火", 4:"火", 5:"土", 6:"土", 7:"金", 8:"金", 9:"水", 0:"水"};
@@ -155,41 +175,45 @@
 
         function createArrowSvg(info) {
             if (info.type === "無") return "";
-            const isSheng = info.type === "生";
-            const isDown = info.dir === "下";
-            let head = isSheng ? (isDown ? "M -5,-8 L 0,0 L 5,-8" : "M -5,8 L 0,0 L 5,8") 
-                               : (isDown ? "M -6,-10 L 6,-10 L 0,2 Z" : "M -6,10 L 6,10 L 0,-2 Z");
-            const y = isDown ? 35 : 5;
+            const head = info.type === "生" ? 
+                (info.dir === "下" ? "M -5,-8 L 0,0 L 5,-8" : "M -5,8 L 0,0 L 5,8") :
+                (info.dir === "下" ? "M -6,-10 L 6,-10 L 0,2 Z" : "M -6,10 L 6,10 L 0,-2 Z");
+            const y = info.dir === "下" ? 35 : 5;
             return `<svg width="35" height="40" style="display:block; margin:0 auto;">
                 <line x1="17" y1="5" x2="17" y2="35" stroke="red" stroke-width="1.5" />
-                <path d="${head}" fill="${isSheng ? 'none' : 'red'}" stroke="red" stroke-width="1.5" transform="translate(17,${y})" />
+                <path d="${head}" fill="${info.type === '生' ? 'none' : 'red'}" stroke="red" stroke-width="1.5" transform="translate(17,${y})" />
             </svg>`;
         }
 
-        function buildTableHtml(last, first) {
+        function getGirdInfo(last, first) {
             const l1 = getStrokes(last[0]), l2 = last.length > 1 ? getStrokes(last[1]) : 0;
             const f1 = getStrokes(first[0]), f2 = first.length > 1 ? getStrokes(first[1]) : 0;
-            const tian = last.length == 1 ? l1 + 1 : l1 + l2;
-            const ren = (l1 + l2) + f1;
-            const di = first.length == 1 ? f1 + 1 : f1 + f2;
-            const zong = l1 + l2 + f1 + f2;
+            return {
+                tian: last.length == 1 ? l1 + 1 : l1 + l2,
+                ren: (l1 + l2) + f1,
+                di: first.length == 1 ? f1 + 1 : f1 + f2,
+                zong: l1 + l2 + f1 + f2,
+                l1, l2, f1, f2
+            };
+        }
 
+        function buildTableHtml(last, first, info) {
             let html = "";
             if (last.length == 1) {
-                html += `<tr class="char-row"><td class="stroke-text">${l1}</td><td class="char-text">${last[0]}</td><td class="num-text">${tian}</td><td class="wx-text">${getWX(tian)}</td><td class="ge-label">天格</td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">${info.l1}</td><td class="char-text">${last[0]}</td><td class="num-text">${info.tian}</td><td class="wx-text">${getWX(info.tian)}</td><td class="ge-label">天格</td></tr>`;
             } else {
-                html += `<tr class="char-row"><td class="stroke-text">${l1}</td><td class="char-text">${last[0]}</td><td></td><td></td><td></td></tr>`;
-                html += `<tr class="char-row"><td class="stroke-text">${l2}</td><td class="char-text">${last[1]}</td><td class="num-text">${tian}</td><td class="wx-text">${getWX(tian)}</td><td class="ge-label">天格</td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">${info.l1}</td><td class="char-text">${last[0]}</td><td></td><td></td><td></td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">${info.l2}</td><td class="char-text">${last[1]}</td><td class="num-text">${info.tian}</td><td class="wx-text">${getWX(info.tian)}</td><td class="ge-label">天格</td></tr>`;
             }
-            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(tian, ren))}</td><td></td></tr>`;
-            html += `<tr class="char-row"><td class="stroke-text">${f1}</td><td class="char-text">${first[0]}</td><td class="num-text">${ren}</td><td class="wx-text">${getWX(ren)}</td><td class="ge-label">人格</td></tr>`;
-            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(ren, di))}</td><td></td></tr>`;
+            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(info.tian, info.ren))}</td><td></td></tr>`;
+            html += `<tr class="char-row"><td class="stroke-text">${info.f1}</td><td class="char-text">${first[0]}</td><td class="num-text">${info.ren}</td><td class="wx-text">${getWX(info.ren)}</td><td class="ge-label">人格</td></tr>`;
+            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(info.ren, info.di))}</td><td></td></tr>`;
             if (first.length > 1) {
-                html += `<tr class="char-row"><td class="stroke-text">${f2}</td><td class="char-text">${first[1]}</td><td class="num-text">${di}</td><td class="wx-text">${getWX(di)}</td><td class="ge-label">地格</td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">${info.f2}</td><td class="char-text">${first[1]}</td><td class="num-text">${info.di}</td><td class="wx-text">${getWX(info.di)}</td><td class="ge-label">地格</td></tr>`;
             } else {
-                html += `<tr class="char-row"><td class="stroke-text">1</td><td></td><td class="num-text">${di}</td><td class="wx-text">${getWX(di)}</td><td class="ge-label">地格</td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">1</td><td></td><td class="num-text">${info.di}</td><td class="wx-text">${getWX(info.di)}</td><td class="ge-label">地格</td></tr>`;
             }
-            return { html, zong };
+            return html;
         }
 
         function analyzeMarriage() {
@@ -199,19 +223,52 @@
             const wf = document.getElementById('wfName').value.trim();
 
             if (!ml || !mf || !wl || !wf) {
-                alert("請完整輸入男方與女方的姓名");
+                alert("請完整輸入姓名");
                 return;
             }
 
-            const mRes = buildTableHtml(ml, mf);
-            document.getElementById('mResultTable').innerHTML = mRes.html;
-            document.getElementById('mTotalBox').innerText = "總格 ： " + mRes.zong;
+            const mInfo = getGirdInfo(ml, mf);
+            const wInfo = getGirdInfo(wl, wf);
+
+            document.getElementById('mResultTable').innerHTML = buildTableHtml(ml, mf, mInfo);
+            document.getElementById('mTotalBox').innerText = "總格 ： " + mInfo.zong;
             document.getElementById('mResultFrame').style.display = "block";
 
-            const wRes = buildTableHtml(wl, wf);
-            document.getElementById('wResultTable').innerHTML = wRes.html;
-            document.getElementById('wTotalBox').innerText = "總格 ： " + wRes.zong;
+            document.getElementById('wResultTable').innerHTML = buildTableHtml(wl, wf, wInfo);
+            document.getElementById('wTotalBox').innerText = "總格 ： " + wInfo.zong;
             document.getElementById('wResultFrame').style.display = "block";
+
+            // --- 婚姻邏輯分析 ---
+            let analysisResults = [];
+
+            // 坐入檢查邏輯
+            const checkZuoru = (val1, val2) => {
+                return (val1 === val2) || (reduceToSingleDigit(val1) === reduceToSingleDigit(val2));
+            };
+
+            let hasZuoru = false;
+            // 規則：人格對地格，或地格對總格
+            if (checkZuoru(mInfo.ren, wInfo.di) || checkZuoru(wInfo.ren, mInfo.di) || 
+                checkZuoru(mInfo.di, wInfo.zong) || checkZuoru(wInfo.di, mInfo.zong)) {
+                hasZuoru = true;
+            }
+
+            if (hasZuoru) {
+                analysisResults.push("1. 坐入");
+            } else {
+                // 如果未來有其他規則，這裡會補上，目前先放個佔位符確保 1. 不會消失
+                // analysisResults.push("1. (其他分析結果)"); 
+            }
+
+            // 顯示結果
+            const aBox = document.getElementById('analysisBox');
+            const aList = document.getElementById('analysisList');
+            if (analysisResults.length > 0) {
+                aList.innerHTML = analysisResults.map(res => `<div class="analysis-item">${res}</div>`).join('');
+                aBox.style.display = "block";
+            } else {
+                aBox.style.display = "none";
+            }
         }
     </script>
 </body>
