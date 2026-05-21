@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姓名婚姻分析 - 甄好運姓名學專用</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 20px; text-align: center; color: #333; }
+        .input-box { background: white; border: 1px solid #ddd; border-radius: 15px; padding: 20px; max-width: 450px; margin: 0 auto 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .name-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 10px; }
+        .name-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #800000; }
+        input { width: 35%; padding: 12px; margin: 8px; text-align: center; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; }
+        button { width: 85%; padding: 14px; background-color: #800000; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:disabled { background-color: #bbb; cursor: not-allowed; }
+        
+        .result-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
+        .result-frame { border: 2px solid maroon; border-radius: 15px; padding: 20px; width: 320px; background-color: #FFFBFA; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: none; }
+        .result-title { font-size: 20px; font-weight: bold; color: #800000; margin-bottom: 15px; border-bottom: 1px solid #800000; padding-bottom: 5px; }
+        table { margin: 0 auto; border-collapse: collapse; width: 100%; }
+        
+        .char-row { height: 60px; }
+        .arrow-row { height: 45px; }
+        .stroke-text { font-size: 14px; color: #aaa; width: 30px; }
+        .char-text { font-size: 28px; font-weight: bold; width: 60px; color: black; }
+        .num-text { font-size: 20px; color: #483D8B; width: 40px; }
+        .wx-text { font-size: 18px; color: #483D8B; width: 40px; }
+        .ge-label { font-size: 16px; color: #483D8B; font-weight: bold; width: 60px; text-align: left; }
+        
+        .total-box { font-size: 22px; color: darkred; font-weight: bold; margin-top: 20px; border-top: 1.5px solid #ddd; padding-top: 15px; }
+        #status { font-size: 13px; color: #888; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h2 style="margin-bottom: 5px; line-height: 1.2;">姓名婚姻分析</h2>
+    <div style="font-size: 18px; color: #666; margin-bottom: 15px; font-weight: normal;">甄好運姓名學專用</div>
+    <div id="status">正在同步字典數據...</div>
+
+    <div class="input-box">
+        <div class="name-group">
+            <label>男方姓名</label>
+            <input type="text" id="mlName" placeholder="姓" maxlength="2">
+            <input type="text" id="mfName" placeholder="名" maxlength="2">
+        </div>
+        <div class="name-group">
+            <label>女方姓名</label>
+            <input type="text" id="wlName" placeholder="姓" maxlength="2">
+            <input type="text" id="wfName" placeholder="名" maxlength="2">
+        </div>
+        <button id="btnRun" onclick="analyzeMarriage()" disabled>開始婚姻分析</button>
+    </div>
+
+    <div class="result-container">
+        <div id="mResultFrame" class="result-frame">
+            <div class="result-title">男方格局</div>
+            <table id="mResultTable"></table>
+            <div id="mTotalBox" class="total-box"></div>
+        </div>
+
+        <div id="wResultFrame" class="result-frame">
+            <div class="result-title">女方格局</div>
+            <table id="wResultTable"></table>
+            <div id="wTotalBox" class="total-box"></div>
+        </div>
+    </div>
+
+    <script>
+        let dictionary = {};
+        const btn = document.getElementById('btnRun');
+        const status = document.getElementById('status');
+
+        function getStrokes(char) {
+            const customStrokes = {
+                '互': 4, '片': 4, '氏': 4, '及': 4, '之': 4, '王': 4,
+                '瓦': 5, '台': 5, '巡': 6, '卉': 6, '廷': 7, '初': 7, '秀': 7, '成': 7,
+                '亞': 8, '武': 8, '昆': 8, '沛': 8, '牧': 8, '弢': 8, '去': 8, '幺': 8,
+                '政': 9, '盈': 9, '建': 9, '妍': 9, '致': 9, '修': 9,
+                '哲': 10, '卿': 10, '娜': 10, '育': 10,
+                '屏': 11, '胡': 11, '強': 11, '迎': 11, '閏': 11, '一': 11, '弓': 11, '丿': 11,
+                '傑': 12, '黃': 12, '盛': 12, '勝': 12, '為': 12, '能': 12, '胸': 12, '涵': 12,
+                '溫': 13, '新': 13, '敬': 13, '雋': 13, '淵': 13,
+                '郎': 14, '鳳': 14, '萍': 14, '慈': 14, '嘉': 14,
+                '萬': 15, '興': 15, '霈': 15, '數': 15, '寬': 15, '豎': 15, '履': 15,
+                '學': 16, '樺': 16, '璇': 16, '閣': 16, '潔': 16, '頤': 16,
+                '鴻': 17, '臨': 17, '燦': 17, '戴': 18, '豐': 18, '珞': 18, '魏': 18,
+                '蕭': 19, '覺': 19, '贊': 19, '羅': 20, '寶': 20, '藏': 20, '譽': 20, '馨': 20,
+                '屬': 21, '龔': 22, '響': 22, '霽': 22, '蘭': 23, '麟': 23, '艷': 24
+            };
+            return customStrokes[char] || dictionary[char] || 0;
+        }
+
+        async function loadDict() {
+            try {
+                const files = ['slim_a.txt', 'slim_b.txt'];
+                for (const file of files) {
+                    const response = await fetch(file);
+                    const data = await response.json();
+                    for (let key in data) { dictionary[key] = data[key]; }
+                }
+                status.innerText = "✅ 字典已就緒";
+                btn.disabled = false;
+            } catch (err) {
+                status.innerHTML = "❌ 字典載入異常";
+            }
+        }
+        loadDict();
+
+        function getWX(n) {
+            const map = {1:"木", 2:"木", 3:"火", 4:"火", 5:"土", 6:"土", 7:"金", 8:"金", 9:"水", 0:"水"};
+            return map[n % 10];
+        }
+
+        function getRelationInfo(up, down) {
+            const getIdx = (n) => {
+                const t = n % 10;
+                if (t==1||t==2) return 0; if (t==3||t==4) return 1;
+                if (t==5||t==6) return 2; if (t==7||t==8) return 3; return 4;
+            };
+            const u = getIdx(up), d = getIdx(down);
+            if (u == d) return { type: "無", dir: "" };
+            if ((u + 1) % 5 == d) return { type: "生", dir: "下" };
+            if ((d + 1) % 5 == u) return { type: "生", dir: "上" };
+            const ke = [0, 2, 4, 1, 3];
+            const ui = ke.indexOf(u), di = ke.indexOf(d);
+            if ((ui + 1) % 5 == di) return { type: "剋", dir: "下" };
+            if ((di + 1) % 5 == ui) return { type: "剋", dir: "上" };
+            return { type: "無", dir: "" };
+        }
+
+        function createArrowSvg(info) {
+            if (info.type === "無") return "";
+            const isSheng = info.type === "生";
+            const isDown = info.dir === "下";
+            let head = isSheng ? (isDown ? "M -5,-8 L 0,0 L 5,-8" : "M -5,8 L 0,0 L 5,8") 
+                               : (isDown ? "M -6,-10 L 6,-10 L 0,2 Z" : "M -6,10 L 6,10 L 0,-2 Z");
+            const y = isDown ? 35 : 5;
+            return `<svg width="40" height="45" style="display:block; margin:0 auto;">
+                <line x1="20" y1="5" x2="20" y2="35" stroke="red" stroke-width="2" />
+                <path d="${head}" fill="${isSheng ? 'none' : 'red'}" stroke="red" stroke-width="2" transform="translate(20,${y})" />
+            </svg>`;
+        }
+
+        function buildTableHtml(last, first) {
+            const l1 = getStrokes(last[0]), l2 = last.length > 1 ? getStrokes(last[1]) : 0;
+            const f1 = getStrokes(first[0]), f2 = first.length > 1 ? getStrokes(first[1]) : 0;
+            const tian = last.length == 1 ? l1 + 1 : l1 + l2;
+            const ren = (l1 + l2) + f1;
+            const di = first.length == 1 ? f1 + 1 : f1 + f2;
+            const zong = l1 + l2 + f1 + f2;
+
+            let html = "";
+            if (last.length == 1) {
+                html += `<tr class="char-row"><td class="stroke-text">${l1}</td><td class="char-text">${last[0]}</td><td class="num-text">${tian}</td><td class="wx-text">${getWX(tian)}</td><td class="ge-label">天格</td></tr>`;
+            } else {
+                html += `<tr class="char-row"><td class="stroke-text">${l1}</td><td class="char-text">${last[0]}</td><td></td><td></td><td></td></tr>`;
+                html += `<tr class="char-row"><td class="stroke-text">${l2}</td><td class="char-text">${last[1]}</td><td class="num-text">${tian}</td><td class="wx-text">${getWX(tian)}</td><td class="ge-label">天格</td></tr>`;
+            }
+            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(tian, ren))}</td><td></td></tr>`;
+            html += `<tr class="char-row"><td class="stroke-text">${f1}</td><td class="char-text">${first[0]}</td><td class="num-text">${ren}</td><td class="wx-text">${getWX(ren)}</td><td class="ge-label">人格</td></tr>`;
+            html += `<tr class="arrow-row"><td></td><td></td><td></td><td>${createArrowSvg(getRelationInfo(ren, di))}</td><td></td></tr>`;
+            if (first.length > 1) {
+                html += `<tr class="char-row"><td class="stroke-text">${f2}</td><td class="char-text">${first[1]}</td><td class="num-text">${di}</td><td class="wx-text">${getWX(di)}</td><td class="ge-label">地格</td></tr>`;
+            } else {
+                html += `<tr class="char-row"><td class="stroke-text">1</td><td></td><td class="num-text">${di}</td><td class="wx-text">${getWX(di)}</td><td class="ge-label">地格</td></tr>`;
+            }
+            return { html, zong };
+        }
+
+        function analyzeMarriage() {
+            const ml = document.getElementById('mlName').value.trim();
+            const mf = document.getElementById('mfName').value.trim();
+            const wl = document.getElementById('wlName').value.trim();
+            const wf = document.getElementById('wfName').value.trim();
+
+            if (!ml || !mf || !wl || !wf) {
+                alert("請完整輸入男方與女方的姓名");
+                return;
+            }
+
+            // 處理男方
+            const mRes = buildTableHtml(ml, mf);
+            document.getElementById('mResultTable').innerHTML = mRes.html;
+            document.getElementById('mTotalBox').innerText = "總格 ： " + mRes.zong;
+            document.getElementById('mResultFrame').style.display = "block";
+
+            // 處理女方
+            const wRes = buildTableHtml(wl, wf);
+            document.getElementById('wResultTable').innerHTML = wRes.html;
+            document.getElementById('wTotalBox').innerText = "總格 ： " + wRes.zong;
+            document.getElementById('wResultFrame').style.display = "block";
+        }
+    </script>
+</body>
+</html>
