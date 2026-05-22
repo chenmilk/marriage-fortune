@@ -30,7 +30,7 @@
         .result-frame { 
             border: 2px solid maroon; 
             border-radius: 15px; 
-            padding: 8px 5px; /* 縮小內邊距 */
+            padding: 8px 3px; /* 極度縮小內邊距以利手機並排 */
             width: 49%; 
             background-color: #FFFBFA; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
@@ -45,16 +45,20 @@
             table-layout: fixed; /* 固定佈局 */
         }
 
+        /* 統一高度解決間距問題，並修正平宮塌陷 */
+        .char-row { height: 60px; }
+        .arrow-row { height: 45px; vertical-align: middle; }
+        .arrow-row td { height: 45px; padding: 0; }
+
         /* 精確控制每一欄的寬度，縮小空格 */
         .stroke-text { font-size: 11px; color: #aaa; width: 22px; text-align: center; }
-        .char-text { font-size: 20px; font-weight: bold; width: 40px; color: black; text-align: center; }
-        .num-text { font-size: 17px; color: #483D8B; width: 30px; text-align: center; }
-        .wx-text { font-size: 15px; color: #483D8B; width: 28px; text-align: center; }
-        .ge-label { font-size: 13px; color: #483D8B; font-weight: bold; width: 40px; text-align: left; }
+        .char-text { font-size: 20px; font-weight: bold; width: 38px; color: black; text-align: center; }
+        .num-text { font-size: 17px; color: #483D8B; width: 28px; text-align: center; }
+        .wx-text { font-size: 15px; color: #483D8B; width: 25px; text-align: center; }
+        .ge-label { font-size: 13px; color: #483D8B; font-weight: bold; width: 38px; text-align: left; }
         
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
         
-        /* 分析結果顯示區 */
         .analysis-box {
             max-width: 450px;
             margin: 20px auto;
@@ -63,7 +67,7 @@
             border: 1px solid #800000;
             border-radius: 10px;
             padding: 15px;
-            display: block; /* 確保框框固定出現 */
+            display: block;
         }
         .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
         .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
@@ -138,13 +142,10 @@
                 }
                 status.innerText = "✅ 字典已就緒";
                 btn.disabled = false;
-            } catch (err) {
-                status.innerHTML = "❌ 字典載入異常";
-            }
+            } catch (err) { status.innerHTML = "❌ 字典載入異常"; }
         }
         loadDict();
 
-        // 遞迴將數字相加直到變成個位數 (如 29 -> 11 -> 2)
         function reduceToSingleDigit(n) {
             while (n >= 10) {
                 n = String(n).split('').reduce((sum, d) => sum + parseInt(d), 0);
@@ -175,7 +176,10 @@
         }
 
         function createArrowSvg(info) {
-            if (info.type === "無") return "";
+            // 平宮時回傳透明預留空間，保持高度一致
+            if (info.type === "無") {
+                return `<svg width="30" height="35" style="display:block; margin:0 auto; visibility:hidden;"></svg>`;
+            }
             const head = info.type === "生" ? 
                 (info.dir === "下" ? "M -4,-6 L 0,0 L 4,-6" : "M -4,6 L 0,0 L 4,6") :
                 (info.dir === "下" ? "M -5,-8 L 5,-8 L 0,2 Z" : "M -5,8 L 5,8 L 0,-2 Z");
@@ -239,36 +243,20 @@
             document.getElementById('wTotalBox').innerText = "總格 ： " + wInfo.zong;
             document.getElementById('wResultFrame').style.display = "block";
 
-            // --- 婚姻邏輯分析 ---
             let analysisResults = [];
-
-            // 坐入檢查邏輯
             const checkZuoru = (val1, val2) => {
                 return (val1 === val2) || (reduceToSingleDigit(val1) === reduceToSingleDigit(val2));
             };
 
-            let hasZuoru = false;
-            // 規則：人格對地格，或地格對總格
             if (checkZuoru(mInfo.ren, wInfo.di) || checkZuoru(wInfo.ren, mInfo.di) || 
                 checkZuoru(mInfo.di, wInfo.zong) || checkZuoru(wInfo.di, mInfo.zong)) {
-                hasZuoru = true;
-            }
-
-            if (hasZuoru) {
                 analysisResults.push("1. 坐入");
-            } else {
-                // 如果未來有其他規則，這裡會補上，目前先放個佔位符確保 1. 不會消失
-                // analysisResults.push("1. (其他分析結果)"); 
             }
 
-           // 渲染分析結果清單
             const aList = document.getElementById('analysisList');
-            
             if (analysisResults.length > 0) {
-                // 如果有符合「坐入」或其他規則，顯示結果
                 aList.innerHTML = analysisResults.map(res => `<div class="analysis-item">${res}</div>`).join('');
             } else {
-                // 如果完全沒有符合，顯示特定的文字，讓「分析結果：」下方不留白
                 aList.innerHTML = `<div class="analysis-item" style="color: #888;">(此組合尚無特殊坐入關係)</div>`;
             }
         }
