@@ -26,30 +26,31 @@
             width: 100%;
         }
         
+        /* 縮小表格間距，讓內容更緊湊 */
         .result-frame { 
             border: 2px solid maroon; 
             border-radius: 15px; 
-            padding: 10px; 
-            width: 48%; 
-            min-width: 170px; 
+            padding: 8px 5px; /* 縮小內邊距 */
+            width: 49%; 
             background-color: #FFFBFA; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
             display: none; 
             box-sizing: border-box;
-            vertical-align: top;
         }
-        
-        .result-title { font-size: 16px; font-weight: bold; color: #800000; margin-bottom: 10px; border-bottom: 1px solid #800000; padding-bottom: 5px; }
-        table { margin: 0 auto; border-collapse: collapse; width: 100%; table-layout: fixed; }
-        
-        .char-row { height: 50px; }
-        .arrow-row { height: 40px; }
-        
-        .stroke-text { font-size: 12px; color: #aaa; width: 25px; }
-        .char-text { font-size: 22px; font-weight: bold; width: 45px; color: black; white-space: nowrap; }
-        .num-text { font-size: 18px; color: #483D8B; width: 35px; }
-        .wx-text { font-size: 16px; color: #483D8B; width: 35px; }
-        .ge-label { font-size: 14px; color: #483D8B; font-weight: bold; width: 45px; text-align: left; }
+
+        table { 
+            margin: 0 auto; 
+            border-collapse: collapse; 
+            width: 100%; 
+            table-layout: fixed; /* 固定佈局 */
+        }
+
+        /* 精確控制每一欄的寬度，縮小空格 */
+        .stroke-text { font-size: 11px; color: #aaa; width: 22px; text-align: center; }
+        .char-text { font-size: 20px; font-weight: bold; width: 40px; color: black; text-align: center; }
+        .num-text { font-size: 17px; color: #483D8B; width: 30px; text-align: center; }
+        .wx-text { font-size: 15px; color: #483D8B; width: 28px; text-align: center; }
+        .ge-label { font-size: 13px; color: #483D8B; font-weight: bold; width: 40px; text-align: left; }
         
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
         
@@ -176,12 +177,12 @@
         function createArrowSvg(info) {
             if (info.type === "無") return "";
             const head = info.type === "生" ? 
-                (info.dir === "下" ? "M -5,-8 L 0,0 L 5,-8" : "M -5,8 L 0,0 L 5,8") :
-                (info.dir === "下" ? "M -6,-10 L 6,-10 L 0,2 Z" : "M -6,10 L 6,10 L 0,-2 Z");
-            const y = info.dir === "下" ? 35 : 5;
-            return `<svg width="35" height="40" style="display:block; margin:0 auto;">
-                <line x1="17" y1="5" x2="17" y2="35" stroke="red" stroke-width="1.5" />
-                <path d="${head}" fill="${info.type === '生' ? 'none' : 'red'}" stroke="red" stroke-width="1.5" transform="translate(17,${y})" />
+                (info.dir === "下" ? "M -4,-6 L 0,0 L 4,-6" : "M -4,6 L 0,0 L 4,6") :
+                (info.dir === "下" ? "M -5,-8 L 5,-8 L 0,2 Z" : "M -5,8 L 5,8 L 0,-2 Z");
+            const y = info.dir === "下" ? 30 : 5;
+            return `<svg width="30" height="35" style="display:block; margin:0 auto;">
+                <line x1="15" y1="5" x2="15" y2="30" stroke="red" stroke-width="1.2" />
+                <path d="${head}" fill="${info.type === '生' ? 'none' : 'red'}" stroke="red" stroke-width="1.2" transform="translate(15,${y})" />
             </svg>`;
         }
 
