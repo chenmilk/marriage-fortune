@@ -27,7 +27,7 @@
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
         .analysis-box { max-width: 450px; margin: 20px auto; text-align: left; background: #fff; border: 1px solid #800000; border-radius: 10px; padding: 15px; display: block; }
         .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
-        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
+        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; font-weight: bold; }
         #status { font-size: 13px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
@@ -102,6 +102,7 @@
         }
         loadDict();
 
+        // 遞迴計算至個位數
         function reduceToSingleDigit(n) {
             while (n >= 10) { n = String(n).split('').reduce((sum, d) => sum + parseInt(d), 0); }
             return n;
@@ -144,7 +145,6 @@
         function getGirdData(lStr, fStr) {
             let lNameArr = [], fNameArr = [], lStrokes = [], fStrokes = [];
             
-            // 處理姓 (隱藏功能: 01-99)
             if (/^\d{1,2}$/.test(lStr)) {
                 lNameArr = [lStr];
                 lStrokes = [parseInt(lStr)];
@@ -153,7 +153,6 @@
                 lStrokes = lNameArr.map(c => getStrokes(c));
             }
 
-            // 處理名 (隱藏功能: 4位數字)
             if (/^\d{4}$/.test(fStr)) {
                 let n1 = parseInt(fStr.substring(0, 2));
                 let n2 = parseInt(fStr.substring(2, 4));
@@ -208,15 +207,45 @@
             document.getElementById('wTotalBox').innerText = "總格 ： " + wData.zong;
             document.getElementById('wResultFrame').style.display = "block";
 
-            let analysisResults = [];
-            const checkZuoru = (v1, v2) => (v1 === v2) || (reduceToSingleDigit(v1) === reduceToSingleDigit(v2));
+            let rawResults = []; // 暫存符合的結果名稱
 
+            // --- 規則 1：坐入 ---
+            const checkZuoru = (v1, v2) => (v1 === v2) || (reduceToSingleDigit(v1) === reduceToSingleDigit(v2));
             if (checkZuoru(mData.ren, wData.di) || checkZuoru(wData.ren, mData.di) || checkZuoru(mData.di, wData.zong) || checkZuoru(wData.di, mData.zong)) {
-                analysisResults.push("1. 坐入");
+                rawResults.push("坐入");
             }
 
+            // --- 規則 2：對流 ---
+            const mRenD = reduceToSingleDigit(mData.ren);
+            const mDiD = reduceToSingleDigit(mData.di);
+            const wRenD = reduceToSingleDigit(wData.ren);
+            const wDiD = reduceToSingleDigit(wData.di);
+
+            const mRenWx = getWX(mRenD);
+            const mDiWx = getWX(mDiD);
+            const wRenWx = getWX(wRenD);
+            const wDiWx = getWX(wDiD);
+
+            // 判斷五行是否完全交叉相反
+            if (mRenWx === wDiWx && mDiWx === wRenWx) {
+                if (mRenWx === mDiWx) {
+                    // 若是平宮：必須數字交叉且數字不能相同 (男 1,2 對 女 2,1)
+                    if (mRenD === wDiD && mDiD === wRenD && mRenD !== mDiD) {
+                        rawResults.push("對流");
+                    }
+                } else {
+                    // 非平宮：只要五行反轉即成立
+                    rawResults.push("對流");
+                }
+            }
+
+            // --- 渲染結果，自動加上 1. 2. 序號 ---
             const aList = document.getElementById('analysisList');
-            aList.innerHTML = analysisResults.length > 0 ? analysisResults.map(res => `<div class="analysis-item">${res}</div>`).join('') : `<div class="analysis-item" style="color: #888;">(此組合尚無特殊坐入關係)</div>`;
+            if (rawResults.length > 0) {
+                aList.innerHTML = rawResults.map((res, index) => `<div class="analysis-item">${index + 1}. ${res}</div>`).join('');
+            } else {
+                aList.innerHTML = `<div class="analysis-item" style="color: #888; font-weight: normal;">(此組合尚無特殊關係)</div>`;
+            }
         }
     </script>
 </body>
