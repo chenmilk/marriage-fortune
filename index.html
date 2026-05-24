@@ -27,7 +27,7 @@
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
         .analysis-box { max-width: 450px; margin: 20px auto; text-align: left; background: #fff; border: 1px solid #800000; border-radius: 10px; padding: 15px; display: block; }
         .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
-        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; font-weight: bold; }
+        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
         #status { font-size: 13px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
@@ -102,7 +102,6 @@
         }
         loadDict();
 
-        // 遞迴計算至個位數
         function reduceToSingleDigit(n) {
             while (n >= 10) { n = String(n).split('').reduce((sum, d) => sum + parseInt(d), 0); }
             return n;
@@ -207,7 +206,7 @@
             document.getElementById('wTotalBox').innerText = "總格 ： " + wData.zong;
             document.getElementById('wResultFrame').style.display = "block";
 
-            let rawResults = []; // 暫存符合的結果名稱
+            let rawResults = [];
 
             // --- 規則 1：坐入 ---
             const checkZuoru = (v1, v2) => (v1 === v2) || (reduceToSingleDigit(v1) === reduceToSingleDigit(v2));
@@ -226,20 +225,47 @@
             const wRenWx = getWX(wRenD);
             const wDiWx = getWX(wDiD);
 
-            // 判斷五行是否完全交叉相反
             if (mRenWx === wDiWx && mDiWx === wRenWx) {
                 if (mRenWx === mDiWx) {
-                    // 若是平宮：必須數字交叉且數字不能相同 (男 1,2 對 女 2,1)
                     if (mRenD === wDiD && mDiD === wRenD && mRenD !== mDiD) {
                         rawResults.push("對流");
                     }
                 } else {
-                    // 非平宮：只要五行反轉即成立
                     rawResults.push("對流");
                 }
             }
 
-            // --- 渲染結果，自動加上 1. 2. 序號 ---
+            // --- 規則 3：另類搭配 (汽化象判定) ---
+            function getXiang(ren, di) {
+                const r = reduceToSingleDigit(ren);
+                const d = reduceToSingleDigit(di);
+                const wr = getWX(r);
+                const wd = getWX(d);
+
+                if (wr === wd) {
+                    return (r === d) ? "平雙" : "陰陽雙";
+                }
+
+                // 判斷是否為「淡象」: 地格(d) 生 人格(r)
+                const rel = getRelationInfo(r, d);
+                // getRelationInfo中，如果 dir:"上" 代表 下(地格) 生 上(人格)
+                if (rel.type === "生" && rel.dir === "上") {
+                    return "淡象";
+                }
+
+                return "無";
+            }
+
+            const mXiang = getXiang(mData.ren, mData.di);
+            const wXiang = getXiang(wData.ren, wData.di);
+
+            if ((mXiang === "平雙" && wXiang === "淡象") || (wXiang === "平雙" && mXiang === "淡象")) {
+                rawResults.push("另類搭配(平雙配淡象)");
+            } else if ((mXiang === "陰陽雙" && wXiang === "平雙") || (wXiang === "陰陽雙" && mXiang === "平雙")) {
+                rawResults.push("另類搭配(陰陽雙配平雙)");
+            }
+
+            // --- 渲染結果清單 ---
             const aList = document.getElementById('analysisList');
             if (rawResults.length > 0) {
                 aList.innerHTML = rawResults.map((res, index) => `<div class="analysis-item">${index + 1}. ${res}</div>`).join('');
