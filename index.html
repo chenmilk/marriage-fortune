@@ -206,7 +206,7 @@
             document.getElementById('wTotalBox').innerText = "總格 ： " + wData.zong;
             document.getElementById('wResultFrame').style.display = "block";
 
-            let rawResults = [];
+            let rawResults = []; 
 
             // --- 規則 1：坐入 ---
             const checkZuoru = (v1, v2) => (v1 === v2) || (reduceToSingleDigit(v1) === reduceToSingleDigit(v2));
@@ -214,7 +214,7 @@
                 rawResults.push("坐入");
             }
 
-            // --- 規則 2：對流 ---
+            // --- 五行與汽化變數準備 ---
             const mRenD = reduceToSingleDigit(mData.ren);
             const mDiD = reduceToSingleDigit(mData.di);
             const wRenD = reduceToSingleDigit(wData.ren);
@@ -225,6 +225,16 @@
             const wRenWx = getWX(wRenD);
             const wDiWx = getWX(wDiD);
 
+            // 原本五行 (對流與形影不離使用)
+            const mTianWxOrig = getWX(mData.tian);
+            const mRenWxOrig = getWX(mData.ren);
+            const mDiWxOrig = getWX(mData.di);
+
+            const wTianWxOrig = getWX(wData.tian);
+            const wRenWxOrig = getWX(wData.ren);
+            const wDiWxOrig = getWX(wData.di);
+
+            // --- 規則 2：對流 ---
             if (mRenWx === wDiWx && mDiWx === wRenWx) {
                 if (mRenWx === mDiWx) {
                     if (mRenD === wDiD && mDiD === wRenD && mRenD !== mDiD) {
@@ -235,7 +245,7 @@
                 }
             }
 
-            // --- 規則 3：另類搭配 (汽化象判定) ---
+            // --- 規則 3：另類搭配 ---
             function getXiang(ren, di) {
                 const r = reduceToSingleDigit(ren);
                 const d = reduceToSingleDigit(di);
@@ -250,7 +260,6 @@
                 }
                 return "無";
             }
-
             const mXiang = getXiang(mData.ren, mData.di);
             const wXiang = getXiang(wData.ren, wData.di);
 
@@ -260,42 +269,47 @@
                 rawResults.push("另類搭配(陰陽雙配平雙)");
             }
 
-            // --- 規則 4：形影不離 ---
-            function checkXingYing(vapRenWx, vapDiWx, origRenWx, origDiWx) {
+            // --- 規則 4：形影不離 (正確對照邏輯) ---
+            // 汽化五行去比對對方的兩組原本五行: [對方天格, 對方人格], [對方人格, 對方地格]
+            function checkXingYing(vapU_wx, vapD_wx, targetPairs) {
                 const wxArr = ["木", "火", "土", "金", "水"];
-                const u = wxArr.indexOf(vapRenWx);
-                const d = wxArr.indexOf(vapDiWx);
-                const oU = wxArr.indexOf(origRenWx);
-                const oD = wxArr.indexOf(origDiWx);
+                const u = wxArr.indexOf(vapU_wx);
+                const d = wxArr.indexOf(vapD_wx);
+                let highest = null;
 
-                // 判斷是否為生宮 (相鄰)
                 const isSheng = ((u + 1) % 5 === d) || ((d + 1) % 5 === u);
-                const isExactMatch = (u === oU && d === oD);
 
-                if (isSheng) {
-                    // 若為生宮且完全對應
-                    if (isExactMatch) return "一半";
-                    
-                    // 推演下一階
-                    const nextU = (u + 1) % 5;
-                    const nextD = (d + 1) % 5;
-                    if (nextU === oU && nextD === oD) return "全";
-                } else {
-                    // 剋宮或平宮，只要完全對應即可
-                    if (isExactMatch) return "全";
+                for (let pair of targetPairs) {
+                    const tU = wxArr.indexOf(pair[0]);
+                    const tD = wxArr.indexOf(pair[1]);
+
+                    if (isSheng) {
+                        // 推演下一階
+                        const nextU = (u + 1) % 5;
+                        const nextD = (d + 1) % 5;
+                        if (nextU === tU && nextD === tD) {
+                            highest = "全"; // 符合下一階直接最高級別
+                        } else if (u === tU && d === tD) {
+                            if (highest !== "全") highest = "一半"; // 符合原本五行，給一半
+                        }
+                    } else {
+                        // 剋宮或平宮，只要完全對應即是全
+                        if (u === tU && d === tD) {
+                            highest = "全";
+                        }
+                    }
                 }
-                return null;
+                return highest;
             }
 
-            const mOrigRenWx = getWX(mData.ren);
-            const mOrigDiWx = getWX(mData.di);
-            const wOrigRenWx = getWX(wData.ren);
-            const wOrigDiWx = getWX(wData.di);
+            // 準備對方的原本關係對
+            const targetPairsForM = [[wTianWxOrig, wRenWxOrig], [wRenWxOrig, wDiWxOrig]];
+            const targetPairsForW = [[mTianWxOrig, mRenWxOrig], [mRenWxOrig, mDiWxOrig]];
 
-            // 檢查 男方汽化 vs 女方原本
-            const xy1 = checkXingYing(mRenWx, mDiWx, wOrigRenWx, wOrigDiWx);
-            // 檢查 女方汽化 vs 男方原本
-            const xy2 = checkXingYing(wRenWx, wDiWx, mOrigRenWx, mOrigDiWx);
+            // 男方汽化 vs 女方原本
+            const xy1 = checkXingYing(mRenWx, mDiWx, targetPairsForM);
+            // 女方汽化 vs 男方原本
+            const xy2 = checkXingYing(wRenWx, wDiWx, targetPairsForW);
 
             if (xy1 === "全" || xy2 === "全") {
                 rawResults.push("形影不離(全)");
