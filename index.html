@@ -225,7 +225,6 @@
             const wRenWx = getWX(wRenD);
             const wDiWx = getWX(wDiD);
 
-            // 原本五行
             const mTianWxOrig = getWX(mData.tian);
             const mRenWxOrig = getWX(mData.ren);
             const mDiWxOrig = getWX(mData.di);
@@ -269,7 +268,7 @@
                 rawResults.push("另類搭配(陰陽雙配平雙)");
             }
 
-            // --- 規則 4：形影不離 (修正：無方向性對應) ---
+            // --- 規則 4：形影不離 ---
             function checkXingYing(vapU_wx, vapD_wx, targetPairs) {
                 const wxArr = ["木", "火", "土", "金", "水"];
                 const u = wxArr.indexOf(vapU_wx);
@@ -277,8 +276,6 @@
                 let highest = null;
 
                 const isSheng = ((u + 1) % 5 === d) || ((d + 1) % 5 === u);
-
-                // 核心邏輯：判斷兩個五行集合是否相同 (不考慮方向)
                 const matchPair = (a1, b1, a2, b2) => {
                     return (a1 === a2 && b1 === b2) || (a1 === b2 && b1 === a2);
                 };
@@ -288,17 +285,14 @@
                     const tD = wxArr.indexOf(pair[1]);
 
                     if (isSheng) {
-                        // 推演下一階：雙方同時前進一步
                         const nextU = (u + 1) % 5;
                         const nextD = (d + 1) % 5;
-
                         if (matchPair(nextU, nextD, tU, tD)) {
-                            highest = "全"; // 找到完全對應的下一階
+                            highest = "全"; 
                         } else if (matchPair(u, d, tU, tD)) {
-                            if (highest !== "全") highest = "一半"; // 原階對應
+                            if (highest !== "全") highest = "一半";
                         }
                     } else {
-                        // 剋宮或平宮：直接對應原本五行集合
                         if (matchPair(u, d, tU, tD)) {
                             highest = "全";
                         }
@@ -307,19 +301,32 @@
                 return highest;
             }
 
-            // 準備對方的原本關係對
             const targetPairsForM = [[wTianWxOrig, wRenWxOrig], [wRenWxOrig, wDiWxOrig]];
             const targetPairsForW = [[mTianWxOrig, mRenWxOrig], [mRenWxOrig, mDiWxOrig]];
 
-            // 男方汽化 vs 女方原本
             const xy1 = checkXingYing(mRenWx, mDiWx, targetPairsForM);
-            // 女方汽化 vs 男方原本
             const xy2 = checkXingYing(wRenWx, wDiWx, targetPairsForW);
 
             if (xy1 === "全" || xy2 === "全") {
                 rawResults.push("形影不離(全)");
             } else if (xy1 === "一半" || xy2 === "一半") {
                 rawResults.push("形影不離(一半)");
+            }
+
+            // --- 規則 5：最愛 ---
+            // 九宮數循環減 9 取絕對值演算法
+            function getCycleDiff(val1, val2) {
+                let diff = Math.abs(val1 - val2) % 9;
+                if (diff > 4) diff = 9 - diff;
+                return diff;
+            }
+
+            const zongDiff = getCycleDiff(mData.zong, wData.zong);
+            const mInnerDiff = getCycleDiff(mRenD, mDiD);
+            const wInnerDiff = getCycleDiff(wRenD, wDiD);
+
+            if (zongDiff === mInnerDiff || zongDiff === wInnerDiff) {
+                rawResults.push("最愛");
             }
 
             // --- 渲染結果清單 ---
