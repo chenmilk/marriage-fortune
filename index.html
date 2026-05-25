@@ -225,7 +225,7 @@
             const wRenWx = getWX(wRenD);
             const wDiWx = getWX(wDiD);
 
-            // 原本五行 (對流與形影不離使用)
+            // 原本五行
             const mTianWxOrig = getWX(mData.tian);
             const mRenWxOrig = getWX(mData.ren);
             const mDiWxOrig = getWX(mData.di);
@@ -269,8 +269,7 @@
                 rawResults.push("另類搭配(陰陽雙配平雙)");
             }
 
-            // --- 規則 4：形影不離 (正確對照邏輯) ---
-            // 汽化五行去比對對方的兩組原本五行: [對方天格, 對方人格], [對方人格, 對方地格]
+            // --- 規則 4：形影不離 (修正：無方向性對應) ---
             function checkXingYing(vapU_wx, vapD_wx, targetPairs) {
                 const wxArr = ["木", "火", "土", "金", "水"];
                 const u = wxArr.indexOf(vapU_wx);
@@ -279,22 +278,28 @@
 
                 const isSheng = ((u + 1) % 5 === d) || ((d + 1) % 5 === u);
 
+                // 核心邏輯：判斷兩個五行集合是否相同 (不考慮方向)
+                const matchPair = (a1, b1, a2, b2) => {
+                    return (a1 === a2 && b1 === b2) || (a1 === b2 && b1 === a2);
+                };
+
                 for (let pair of targetPairs) {
                     const tU = wxArr.indexOf(pair[0]);
                     const tD = wxArr.indexOf(pair[1]);
 
                     if (isSheng) {
-                        // 推演下一階
+                        // 推演下一階：雙方同時前進一步
                         const nextU = (u + 1) % 5;
                         const nextD = (d + 1) % 5;
-                        if (nextU === tU && nextD === tD) {
-                            highest = "全"; // 符合下一階直接最高級別
-                        } else if (u === tU && d === tD) {
-                            if (highest !== "全") highest = "一半"; // 符合原本五行，給一半
+
+                        if (matchPair(nextU, nextD, tU, tD)) {
+                            highest = "全"; // 找到完全對應的下一階
+                        } else if (matchPair(u, d, tU, tD)) {
+                            if (highest !== "全") highest = "一半"; // 原階對應
                         }
                     } else {
-                        // 剋宮或平宮，只要完全對應即是全
-                        if (u === tU && d === tD) {
+                        // 剋宮或平宮：直接對應原本五行集合
+                        if (matchPair(u, d, tU, tD)) {
                             highest = "全";
                         }
                     }
