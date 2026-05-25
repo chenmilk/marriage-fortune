@@ -194,6 +194,18 @@
             return html;
         }
 
+        // 取得單純的關係組合名稱 (例如 木火 -> 木生火)
+        function getCanonicalRel(wx1, wx2) {
+            const wxArr = ["木", "火", "土", "金", "水"];
+            const i1 = wxArr.indexOf(wx1);
+            const i2 = wxArr.indexOf(wx2);
+            if (i1 === i2) return wx1 + wx2; // 平
+            if ((i1 + 1) % 5 === i2) return wx1 + "生" + wx2; // 生
+            if ((i2 + 1) % 5 === i1) return wx2 + "生" + wx1; // 生
+            if ((i1 + 2) % 5 === i2) return wx1 + "剋" + wx2; // 剋
+            if ((i2 + 2) % 5 === i1) return wx2 + "剋" + wx1; // 剋
+        }
+
         function analyzeMarriage() {
             const mData = getGirdData(document.getElementById('mlName').value.trim(), document.getElementById('mfName').value.trim());
             const wData = getGirdData(document.getElementById('wlName').value.trim(), document.getElementById('wfName').value.trim());
@@ -314,7 +326,6 @@
             }
 
             // --- 規則 5：最愛 ---
-            // 九宮數循環減 9 取絕對值演算法
             function getCycleDiff(val1, val2) {
                 let diff = Math.abs(val1 - val2) % 9;
                 if (diff > 4) diff = 9 - diff;
@@ -328,6 +339,61 @@
             if (zongDiff === mInnerDiff || zongDiff === wInnerDiff) {
                 rawResults.push("最愛");
             }
+
+            // --- 規則 6：來電關係 ---
+            const mThinkRel = getCanonicalRel(mTianWxOrig, mRenWxOrig);
+            const mActionRel = getCanonicalRel(mRenWxOrig, mDiWxOrig);
+            const wThinkRel = getCanonicalRel(wTianWxOrig, wRenWxOrig);
+            const wActionRel = getCanonicalRel(wRenWxOrig, wDiWxOrig);
+
+            const attrCycles = {
+                "平": ["木木", "火火", "土土", "金金", "水水"],
+                "生": ["木生火", "火生土", "土生金", "金生水", "水生木"],
+                "剋": ["金剋木", "木剋土", "土剋水", "水剋火", "火剋金"]
+            };
+
+            function checkAttr(relM, relW) {
+                let cType = null;
+                if (relM.length === 2 && relW.length === 2) cType = "平";
+                else if (relM.includes("生") && relW.includes("生")) cType = "生";
+                else if (relM.includes("剋") && relW.includes("剋")) cType = "剋";
+                
+                if (!cType) return null;
+
+                const cycle = attrCycles[cType];
+                const idxM = cycle.indexOf(relM);
+                const idxW = cycle.indexOf(relW);
+                if (idxM === -1 || idxW === -1) return null;
+                
+                const diff = (idxW - idxM + 5) % 5;
+                if (diff === 1) return "男對女來電(正格)";
+                if (diff === 2) return "男對女來電(跳格)";
+                if (diff === 3) return "女對男來電(跳格)";
+                if (diff === 4) return "女對男來電(正格)";
+                return null;
+            }
+
+            let attrResList = [];
+            const dirThink = checkAttr(mThinkRel, wThinkRel);
+            const dirAction = checkAttr(mActionRel, wActionRel);
+
+            if (dirThink || dirAction) {
+                if (dirThink) attrResList.push(dirThink);
+                if (dirAction) attrResList.push(dirAction);
+            } else {
+                // 沒有正向對應，進行交叉對應
+                const cross1 = checkAttr(mThinkRel, wActionRel);
+                const cross2 = checkAttr(mActionRel, wThinkRel);
+                if (cross1) attrResList.push(cross1);
+                if (cross2) attrResList.push(cross2);
+            }
+
+            if (attrResList.length > 0) {
+                // 去除重複，並用斜線組合
+                attrResList = [...new Set(attrResList)];
+                rawResults.push("來電關係-" + attrResList.join("/"));
+            }
+
 
             // --- 渲染結果清單 ---
             const aList = document.getElementById('analysisList');
