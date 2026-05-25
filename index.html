@@ -27,7 +27,7 @@
         .total-box { font-size: 18px; color: darkred; font-weight: bold; margin-top: 15px; border-top: 1.5px solid #ddd; padding-top: 10px; }
         .analysis-box { max-width: 450px; margin: 20px auto; text-align: left; background: #fff; border: 1px solid #800000; border-radius: 10px; padding: 15px; display: block; }
         .analysis-box h3 { color: #800000; margin-top: 0; font-size: 18px; border-bottom: 2px solid #800000; padding-bottom: 5px; }
-        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; }
+        .analysis-item { font-size: 16px; margin: 5px 0; color: #333; line-height: 1.5; font-weight: bold; }
         #status { font-size: 13px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
@@ -241,18 +241,13 @@
                 const d = reduceToSingleDigit(di);
                 const wr = getWX(r);
                 const wd = getWX(d);
-
                 if (wr === wd) {
                     return (r === d) ? "平雙" : "陰陽雙";
                 }
-
-                // 判斷是否為「淡象」: 地格(d) 生 人格(r)
                 const rel = getRelationInfo(r, d);
-                // getRelationInfo中，如果 dir:"上" 代表 下(地格) 生 上(人格)
                 if (rel.type === "生" && rel.dir === "上") {
                     return "淡象";
                 }
-
                 return "無";
             }
 
@@ -263,6 +258,49 @@
                 rawResults.push("另類搭配(平雙配淡象)");
             } else if ((mXiang === "陰陽雙" && wXiang === "平雙") || (wXiang === "陰陽雙" && mXiang === "平雙")) {
                 rawResults.push("另類搭配(陰陽雙配平雙)");
+            }
+
+            // --- 規則 4：形影不離 ---
+            function checkXingYing(vapRenWx, vapDiWx, origRenWx, origDiWx) {
+                const wxArr = ["木", "火", "土", "金", "水"];
+                const u = wxArr.indexOf(vapRenWx);
+                const d = wxArr.indexOf(vapDiWx);
+                const oU = wxArr.indexOf(origRenWx);
+                const oD = wxArr.indexOf(origDiWx);
+
+                // 判斷是否為生宮 (相鄰)
+                const isSheng = ((u + 1) % 5 === d) || ((d + 1) % 5 === u);
+                const isExactMatch = (u === oU && d === oD);
+
+                if (isSheng) {
+                    // 若為生宮且完全對應
+                    if (isExactMatch) return "一半";
+                    
+                    // 推演下一階
+                    const nextU = (u + 1) % 5;
+                    const nextD = (d + 1) % 5;
+                    if (nextU === oU && nextD === oD) return "全";
+                } else {
+                    // 剋宮或平宮，只要完全對應即可
+                    if (isExactMatch) return "全";
+                }
+                return null;
+            }
+
+            const mOrigRenWx = getWX(mData.ren);
+            const mOrigDiWx = getWX(mData.di);
+            const wOrigRenWx = getWX(wData.ren);
+            const wOrigDiWx = getWX(wData.di);
+
+            // 檢查 男方汽化 vs 女方原本
+            const xy1 = checkXingYing(mRenWx, mDiWx, wOrigRenWx, wOrigDiWx);
+            // 檢查 女方汽化 vs 男方原本
+            const xy2 = checkXingYing(wRenWx, wDiWx, mOrigRenWx, mOrigDiWx);
+
+            if (xy1 === "全" || xy2 === "全") {
+                rawResults.push("形影不離(全)");
+            } else if (xy1 === "一半" || xy2 === "一半") {
+                rawResults.push("形影不離(一半)");
             }
 
             // --- 渲染結果清單 ---
